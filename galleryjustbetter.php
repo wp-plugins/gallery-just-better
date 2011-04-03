@@ -3,7 +3,7 @@
  * Plugin Name: Gallery Just Better
  * Plugin URI: http://www.stefaniamarchisio.com/gallery-just-better-plugin/
  * Description: A gallery of images displayed as native gallery does with a few extra features.
- * Version: 0.1
+ * Version: 0.2
  * Author: Stefania Marchisio
  * Author URI: http://stefaniamarchisio.com/about/
  *
@@ -35,22 +35,22 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 add_shortcode('galleryjb', 'galleryjb_handler');
 
 // [galleryjb]
-function galleryjb_handler($atts) {
+function galleryjb_handler($attr) {
 	global $post, $wp_locale;
 
 	static $instance = 0;
 	$instance++;
 
 	// Allow plugins/themes to override the default gallery template.
-	$output = apply_filters('post_gallery', '', $atts);
+	$output = apply_filters('post_gallery', '', $attr);
 	if ( $output != '' )
 		return $output;
 
 	// We're trusting author input, so let's at least make sure it looks like a valid orderby statement
-	if ( isset( $atts['orderby'] ) ) {
-		$atts['orderby'] = sanitize_sql_orderby( $atts['orderby'] );
-		if ( !$atts['orderby'] )
-			unset( $atts['orderby'] );
+	if ( isset( $attr['orderby'] ) ) {
+		$attr['orderby'] = sanitize_sql_orderby( $atts['orderby'] );
+		if ( !$attr['orderby'] )
+			unset( $attr['orderby'] );
 	}
 
 	extract(shortcode_atts(array(
@@ -64,10 +64,10 @@ function galleryjb_handler($atts) {
 		'size'       => 'thumbnail',
 		'include'    => '',
 		'exclude'    => '',
-		'link'   	=> '',
-		'target'    => false,
-		'author'	=> true
-	), $atts));
+		'link'       => '',
+		'target'     => false,
+		'author'     => true
+	), $attr));
 
 	$id = intval($id);
 	if ( 'RAND' == $order )
@@ -101,12 +101,16 @@ function galleryjb_handler($atts) {
 	$itemtag = tag_escape($itemtag);
 	$captiontag = tag_escape($captiontag);
 	$columns = intval($columns);
-	$itemwidth = $columns > 0 ? floor(100/$columns) : 100;
+	
+	$itemwidth = ($columns > 0) ? floor(100/$columns) : '100';
+
 	$float = is_rtl() ? 'right' : 'left';
 
 	$selector = "gallery-{$instance}";
 
-	$output = apply_filters('gallery_style', "
+	$gallery_style = $gallery_div = '';
+	if ( apply_filters( 'use_default_gallery_style', true ) )
+		$gallery_style = "
 		<style type='text/css'>
 			#{$selector} {
 				margin: auto;
@@ -115,38 +119,39 @@ function galleryjb_handler($atts) {
 				float: {$float};
 				margin-top: 10px;
 				text-align: center;
-				width: {$itemwidth}%;			}
+				width: {$itemwidth}%;
+			}
 			#{$selector} img {
 				border: 2px solid #cfcfcf;
 			}
 			#{$selector} .gallery-caption {
-				background-color: #cfcfcf;
 				margin-left: 0;
 			}
 		</style>
-		<!-- see gallery_shortcode() in wp-includes/media.php -->
-		<div id='$selector' class='gallery galleryid-{$id}'>");
+		<!-- see gallery_shortcode() in wp-includes/media.php -->";
+	$size_class = sanitize_html_class( $size );
+	$gallery_div = "<div id='$selector' class='gallery galleryid-{$id} gallery-columns-{$columns} gallery-size-{$size_class}'>";
+	$output = apply_filters( 'gallery_style', $gallery_style . "\n\t\t" . $gallery_div );
 
 	$i = 0;
 	foreach ( $attachments as $id => $attachment ) {
-		// $link = isset($atts['link']) && 'file' == $atts['link'] ? wp_get_attachment_link($id, $size, false, false) : wp_get_attachment_link($id, $size, true, false);
-		$_post = & get_post( $id );
+		$link = isset($attr['link']) && 'file' == $attr['link'] ? wp_get_attachment_link($id, $size, false, false) : wp_get_attachment_link($id, $size, true, false);
 
 		switch ($atts['link']) {
-				case 'file': // link images to their filenames
-					$url = wp_get_attachment_url($_post->ID);
-					$link = wp_get_attachment_linkedimg($id, $size, $url, $target);
-					break;
-				case 'null': // do not make images linkable
-					$link = wp_get_attachment_image($id, $size);
-					break;
-				case 'url': // do not make images linkable
-					$url = $attachment->post_content;
-					$link = wp_get_attachment_linkedimg($id, $size, $url, $target);
-					break;
-				default: // link images to their permalink
-					$url = get_attachment_link($_post->ID);
-					$link = wp_get_attachment_linkedimg($id, $size, $url, $target);
+			case 'null': // images are not linked
+				$link = wp_get_attachment_image($id, $size);
+				break;
+			case 'url': // images are linked to external URLs defined in Description textboxes
+				$url = $attachment->post_content;
+				$link = wp_get_attachment_linkedimg($id, $size, $url, $target);
+				break;
+			case 'file': // link images to their filenames (from native wp gallery)
+				$url = wp_get_attachment_url($_post->ID);
+				$link = wp_get_attachment_linkedimg($id, $size, $url, $target);
+				break;
+			default: // link images to their permalink (from native wp gallery)
+				$url = get_attachment_link($_post->ID);
+				$link = wp_get_attachment_linkedimg($id, $size, $url, $target);
 		}
 		$output .= "<{$itemtag} class='gallery-item'>";
 		$output .= "
@@ -156,7 +161,7 @@ function galleryjb_handler($atts) {
 		
 		if ( $captiontag && trim($attachment->post_excerpt) ) {
 			$output .= "
-				<{$captiontag} class='gallery-caption'>
+				<{$captiontag} class='wp-caption-text gallery-caption'>
 				" . wptexturize($attachment->post_excerpt) . "
 				</{$captiontag}>";
 		}
@@ -169,10 +174,11 @@ function galleryjb_handler($atts) {
 			<br style='clear: both;' />
 		</div>\n";
 
-
  	// if author has been selected
 	if ($author !== false && $author !== "false") {
 		$output .= '<p style="text-align:center; font-size: 0.8em">powered by <a target="_blank" href="http://www.stefaniamarchisio.com/gallery-just-better-plugin/">Gallery Just Better plugin</a></p>';
+
+		$output .= '';
 	}
 	return $output;
 }

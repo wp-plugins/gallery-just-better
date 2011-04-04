@@ -4,7 +4,7 @@ Donate link: http://www.stefaniamarchisio.com/donations/
 Tags: gallery, mosaic, image, images, picture, pictures, photo, photos, photograph, photographs, photoblog, photoblogs, thumbnail, thumbnails, link, links, linkable, clickable, framed, shortcode
 Requires at least: 2.5
 Tested up to: 3.1
-Stable tag: 0.2
+Stable tag: 0.3
 
 The look & feel of the native wp [gallery] with added features: non-linkable images or linkable to external URLs; linked page viewable in a new window.
 
@@ -41,6 +41,11 @@ It's a tiny bit more flexible than wp native gallery. It finally allows non-link
 * First release. Based on wp 3.0.4 native wp gallery
 
 == Upgrade Notice ==
+
+= 0.3 =
+
+* Third release. Fixed a bug introduced in 0.2 which prevented some of the extra features to properly work
+* Adjustments to readme.txt file
 
 = 0.2 =
 

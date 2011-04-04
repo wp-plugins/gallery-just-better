@@ -3,7 +3,7 @@
  * Plugin Name: Gallery Just Better
  * Plugin URI: http://www.stefaniamarchisio.com/gallery-just-better-plugin/
  * Description: A gallery of images displayed as native gallery does with a few extra features.
- * Version: 0.2
+ * Version: 0.3
  * Author: Stefania Marchisio
  * Author URI: http://stefaniamarchisio.com/about/
  *
@@ -48,7 +48,7 @@ function galleryjb_handler($attr) {
 
 	// We're trusting author input, so let's at least make sure it looks like a valid orderby statement
 	if ( isset( $attr['orderby'] ) ) {
-		$attr['orderby'] = sanitize_sql_orderby( $atts['orderby'] );
+		$attr['orderby'] = sanitize_sql_orderby( $attr['orderby'] );
 		if ( !$attr['orderby'] )
 			unset( $attr['orderby'] );
 	}
@@ -135,9 +135,10 @@ function galleryjb_handler($attr) {
 
 	$i = 0;
 	foreach ( $attachments as $id => $attachment ) {
-		$link = isset($attr['link']) && 'file' == $attr['link'] ? wp_get_attachment_link($id, $size, false, false) : wp_get_attachment_link($id, $size, true, false);
+		// $link = isset($attr['link']) && 'file' == $attr['link'] ? wp_get_attachment_link($id, $size, false, false) : wp_get_attachment_link($id, $size, true, false);
+		$_post = & get_post( $id );
 
-		switch ($atts['link']) {
+		switch ($attr['link']) {
 			case 'null': // images are not linked
 				$link = wp_get_attachment_image($id, $size);
 				break;
